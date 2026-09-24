@@ -1,0 +1,1121 @@
+<title>Wet Ink</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,500;0,600;1,400&family=Source+Sans+3:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:      #FAF8F4;
+    --surface:    #FFFFFF;
+    --ink:        #171B22;
+    --muted:      #6E7681;
+    --rule:       #E2DED6;
+    --accent:     #2B4C7E;
+    --accent-ink: #FFFFFF;
+    --accent-bg:  #E7EDF6;
+    --warn:       #A2501E;
+    --shadow:     0 1px 2px rgba(23,27,34,.10), 0 10px 28px rgba(23,27,34,.10);
+    --stage:      #EFECE5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #12151B;
+      --surface:    #1A1F27;
+      --ink:        #E9E7E2;
+      --muted:      #99A2AE;
+      --rule:       #2B323D;
+      --accent:     #8FB2E8;
+      --accent-ink: #12151B;
+      --accent-bg:  #1D2733;
+      --warn:       #E0A374;
+      --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 28px rgba(0,0,0,.45);
+      --stage:      #0C0F14;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #12151B;
+    --surface:    #1A1F27;
+    --ink:        #E9E7E2;
+    --muted:      #99A2AE;
+    --rule:       #2B323D;
+    --accent:     #8FB2E8;
+    --accent-ink: #12151B;
+    --accent-bg:  #1D2733;
+    --warn:       #E0A374;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 28px rgba(0,0,0,.45);
+    --stage:      #0C0F14;
+  }
+
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--stage);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  button { font: inherit; color: inherit; }
+
+  /* ── bars ─────────────────────────────────────────────────────────── */
+  .bar {
+    flex: 0 0 auto;
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+  }
+  .bar.top    { border-bottom: 1px solid var(--rule); }
+  .bar.bottom { border-top: 1px solid var(--rule); padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+
+  .wordmark {
+    font-family: Spectral, Georgia, serif;
+    font-weight: 600;
+    font-size: 17px;
+    letter-spacing: .01em;
+    margin-right: 2px;
+  }
+  .wordmark .dot { color: var(--accent); }
+  .docname {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .pager { display: flex; align-items: center; gap: 2px; }
+  .pager .count {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    min-width: 46px;
+    text-align: center;
+  }
+
+  /* ── buttons ──────────────────────────────────────────────────────── */
+  .btn {
+    border: 1px solid var(--rule);
+    background: var(--surface);
+    border-radius: 7px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-weight: 500;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--muted); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--accent-ink);
+  }
+  .btn.ghost { border-color: transparent; background: transparent; padding: 9px 10px; }
+  .btn.icon  { padding: 6px 10px; border-color: transparent; background: transparent; font-size: 16px; line-height: 1; }
+  .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bar.bottom .btn { flex: 1 1 auto; text-align: center; }
+  .bar.bottom .btn.primary { flex: 1.2 1 auto; }
+
+  /* ── stage ────────────────────────────────────────────────────────── */
+  #stage {
+    flex: 1 1 auto;
+    overflow: auto;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  #paper {
+    position: relative;
+    background: #fff;
+    box-shadow: var(--shadow);
+    line-height: 0;
+    max-width: 100%;
+  }
+  #paper canvas { display: block; width: 100%; height: auto; }
+  #overlay { position: absolute; inset: 0; }
+
+  .stamp {
+    position: absolute;
+    touch-action: none;
+    cursor: grab;
+    border: 1px dashed transparent;
+  }
+  .stamp img { width: 100%; height: 100%; display: block; pointer-events: none; }
+  .stamp.sel { border-color: var(--accent); }
+  .stamp .grip, .stamp .kill { display: none; }
+  .stamp.sel .grip, .stamp.sel .kill { display: block; }
+  .stamp .grip {
+    position: absolute;
+    right: -11px; bottom: -11px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    cursor: nwse-resize;
+    touch-action: none;
+  }
+  .stamp .kill {
+    position: absolute;
+    left: -11px; top: -11px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 19px;
+    text-align: center;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  /* ── empty state ──────────────────────────────────────────────────── */
+  #empty {
+    max-width: 30rem;
+    margin: auto;
+    text-align: center;
+    line-height: 1.5;
+    padding-block: 24px;
+  }
+  #empty h1 {
+    font-family: Spectral, Georgia, serif;
+    font-weight: 600;
+    font-size: 26px;
+    margin: 0 0 6px;
+    text-wrap: balance;
+  }
+  #empty p { color: var(--muted); margin: 0 auto 18px; max-width: 26rem; }
+  #empty .actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .assurance {
+    margin-top: 26px;
+    border-top: 1px solid var(--rule);
+    padding-top: 16px;
+    display: grid;
+    gap: 8px;
+    text-align: left;
+    font-size: 13.5px;
+    color: var(--muted);
+  }
+  .assurance b { color: var(--ink); font-weight: 600; }
+  .assurance .eyebrow {
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  /* ── signature sheet ──────────────────────────────────────────────── */
+  #scrim {
+    position: fixed; inset: 0;
+    background: rgba(12,15,20,.45);
+    z-index: 20;
+  }
+  #sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 21;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    border-radius: 14px 14px 0 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -12px 34px rgba(0,0,0,.22);
+  }
+  #sheet .head {
+    display: flex; align-items: baseline; gap: 8px;
+    margin-bottom: 10px;
+  }
+  #sheet h2 {
+    font-family: Spectral, Georgia, serif;
+    font-weight: 600; font-size: 17px; margin: 0;
+  }
+  #sheet .hint { color: var(--muted); font-size: 13px; }
+  #saved {
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    padding: 8px;
+    margin-bottom: 10px;
+    background: var(--accent-bg);
+  }
+  .sigstrip {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .sigcard {
+    position: relative;
+    flex: 0 0 auto;
+    border: 1px solid #D8D3C9;
+    border-radius: 7px;
+    /* Light for the same reason the pad is: the stored PNG is transparent
+       dark ink, invisible on a dark card. */
+    background: #FBFAF7;
+    padding: 6px 10px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .sigcard:hover { border-color: var(--accent); }
+  /* The stored PNG is transparent, so it is shown on the panel colour rather
+     than on white — what you see here is exactly what lands on the page. */
+  .sigcard img { height: 38px; width: auto; display: block; }
+  .sigcard .drop {
+    position: absolute;
+    top: -7px; right: -7px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    color: var(--ink);
+    font-size: 12px;
+    line-height: 17px;
+    text-align: center;
+    padding: 0;
+    cursor: pointer;
+  }
+  .savedhint { display: block; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+  .padwrap {
+    position: relative;
+    border: 1px solid var(--rule);
+    border-radius: 9px;
+    /* Fixed light, NOT var(--paper). The ink is near-black because it is going
+       onto a white PDF page, so in dark mode the token made it near-black ink
+       on a near-black ground: the stroke was recorded perfectly and was simply
+       invisible, which reads as a pad that does not respond at all. The pad
+       stands for paper, so it is paper-coloured in both themes. */
+    background: #FBFAF7;
+    overflow: hidden;
+  }
+  #pad { display: block; width: 100%; height: 190px; touch-action: none; }
+  /* Fixed colours, because the ground above them is fixed. */
+  .baseline {
+    position: absolute; left: 22px; right: 22px; bottom: 46px;
+    border-bottom: 1px solid #D8D3C9;
+    pointer-events: none;
+  }
+  .baseline span {
+    position: absolute; left: 0; top: 6px;
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #8C8678;
+  }
+  #sheet .row, #tsheet .row { display: flex; gap: 8px; margin-top: 10px; }
+  #sheet .row .btn, #tsheet .row .btn { flex: 1 1 auto; }
+
+  #tsheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 21;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+    border-radius: 14px 14px 0 0;
+    padding: 14px 16px calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -12px 34px rgba(0,0,0,.22);
+  }
+  #tsheet .head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  #tsheet h2 { font-family: Spectral, Georgia, serif; font-weight: 600; font-size: 17px; margin: 0; }
+  #tsheet .hint { color: var(--muted); font-size: 13px; }
+  .field { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .field > span { flex: 0 0 96px; font-size: 13px; color: var(--muted); }
+  .field input, .field select {
+    flex: 1 1 auto;
+    font: inherit;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 7px;
+    padding: 8px 10px;
+    min-width: 0;
+  }
+  .field input:focus-visible, .field select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .preview {
+    margin-top: 4px;
+    border: 1px dashed var(--rule);
+    border-radius: 7px;
+    padding: 12px;
+    text-align: center;
+    background: var(--paper);
+    font-size: 17px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  #toast {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    z-index: 30;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 9px 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    max-width: calc(100% - 32px);
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  #toast.warn { background: var(--warn); color: #fff; }
+
+  /* Stamped by build.py. Its only job is to answer "am I looking at the
+     version you just built, or one the phone cached?" */
+  #build {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: .02em;
+    white-space: nowrap;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    #toast { animation: rise .18s ease-out; }
+    #sheet { animation: rise .2s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px) translateX(-50%); } }
+  }
+  #sheet { animation-name: sheetrise; }
+  @keyframes sheetrise { from { transform: translateY(14px); opacity: .6; } }
+
+  @media (max-width: 430px) {
+    .wordmark { font-size: 16px; }
+    .bar { padding-inline: 12px; }
+    #stage { padding: 10px; }
+  }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+
+<header class="bar top">
+  <span class="wordmark">Wet Ink<span class="dot">.</span></span>
+  <span id="build">BUILDSTAMP</span>
+  <span class="docname" id="docname">Nothing open</span>
+  <span class="pager" id="pager" hidden>
+    <button class="btn icon" id="prev" aria-label="Previous page">‹</button>
+    <span class="count" id="count">1 / 1</span>
+    <button class="btn icon" id="next" aria-label="Next page">›</button>
+  </span>
+</header>
+
+<main id="stage">
+  <div id="empty">
+    <h1>Sign a PDF without handing it to anyone</h1>
+    <p>Open a document, draw your signature with a finger, drop it where it belongs, save it back out. Works on a phone.</p>
+    <div class="actions">
+      <button class="btn primary" id="open1">Open a PDF</button>
+      <button class="btn" id="sample">Try a sample page</button>
+    </div>
+    <div class="assurance">
+      <span class="eyebrow">Why this one is safe</span>
+      <div><b>The document never leaves this device.</b> It is opened by the browser, drawn on by the browser, and written back out by the browser. There is no upload, and no server to upload to.</div>
+      <div><b>It works with the aeroplane mode on.</b> Load the page once, switch the network off, and everything still works — that is the test, and you can run it yourself.</div>
+      <div><b>It stamps ink, not a certificate.</b> A drawn signature is what SARS, CIPC and a bank want on a form. A cryptographic PAdES signature is a different job and this does not pretend to do it.</div>
+    </div>
+  </div>
+
+  <div id="paper" hidden>
+    <canvas id="page"></canvas>
+    <div id="overlay"></div>
+  </div>
+</main>
+
+<footer class="bar bottom">
+  <button class="btn" id="open2">Open</button>
+  <button class="btn" id="sign" disabled>Sign</button>
+  <button class="btn" id="datebtn" disabled>Date</button>
+  <button class="btn primary" id="save" disabled>Save</button>
+</footer>
+
+<div id="scrim" hidden></div>
+<section id="sheet" hidden aria-label="Draw your signature">
+  <div class="head">
+    <h2>Draw your signature</h2>
+    <span class="hint" id="sighint">Finger or stylus</span>
+  </div>
+  <div id="saved" hidden>
+    <div class="sigstrip" id="sigstrip"></div>
+    <span class="savedhint">Tap one to place it — or draw a new one below</span>
+  </div>
+  <div class="padwrap">
+    <canvas id="pad"></canvas>
+    <div class="baseline"><span>Sign above the line</span></div>
+  </div>
+  <div class="row">
+    <button class="btn" id="padclear">Clear</button>
+    <button class="btn" id="padcancel">Cancel</button>
+    <button class="btn primary" id="paduse">Place on page</button>
+  </div>
+</section>
+
+<section id="tsheet" hidden aria-label="Place a date">
+  <div class="head">
+    <h2>Place a date</h2>
+    <span class="hint">Defaults to today</span>
+  </div>
+  <label class="field">
+    <span>Date</span>
+    <input type="date" id="dateval">
+  </label>
+  <label class="field">
+    <span>How it reads</span>
+    <select id="datefmt">
+      <option value="iso">2026-09-24</option>
+      <option value="slash">24/09/2026</option>
+      <option value="long">24 September 2026</option>
+    </select>
+  </label>
+  <div class="preview" id="datepreview">2026-09-24</div>
+  <div class="row">
+    <button class="btn" id="tcancel">Cancel</button>
+    <button class="btn primary" id="tuse">Place on page</button>
+  </div>
+</section>
+
+<input type="file" id="file" accept="application/pdf,.pdf" hidden>
+<div id="toast" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var $ = function (s) { return document.querySelector(s); };
+  var SIG_KEY = "wetink.signature.v1";
+
+  var el = {
+    stage: $("#stage"), empty: $("#empty"), paper: $("#paper"),
+    canvas: $("#page"), overlay: $("#overlay"),
+    docname: $("#docname"), pager: $("#pager"), count: $("#count"),
+    prev: $("#prev"), next: $("#next"),
+    sign: $("#sign"), save: $("#save"), file: $("#file"),
+    sheet: $("#sheet"), scrim: $("#scrim"), pad: $("#pad"),
+    sighint: $("#sighint"), toast: $("#toast"),
+    datebtn: $("#datebtn"), tsheet: $("#tsheet"),
+    dateval: $("#dateval"), datefmt: $("#datefmt"), datepreview: $("#datepreview")
+  };
+
+  var S = {
+    bytes: null,        // pristine copy of the original PDF
+    pdf: null,          // pdf.js document
+    pageNo: 1,
+    stamps: [],         // {id, page, fx, fy, fw, src, aspect}
+    sigs: [],           // saved signatures, newest first: {u, a}
+    name: "document.pdf",
+    sel: null,
+    rendering: false,
+    pending: false
+  };
+
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  var downloads = null;
+  if (window.claude && window.claude.use) {
+    window.claude.use("downloads").then(function (d) { downloads = d; });
+  }
+
+  var toastTimer;
+  function toast(msg, warn) {
+    el.toast.textContent = msg;
+    el.toast.className = warn ? "warn" : "";
+    el.toast.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.toast.hidden = true; }, warn ? 5200 : 2600);
+  }
+
+  /* ── stored signatures ──────────────────────────────────────────────
+     Up to MAX kept on this device, newest first, as {u: dataURL, a: aspect}.
+     They never leave the browser — localStorage is per-origin and per-device,
+     so there is nothing here to sync and nothing to leak. Every read and write
+     is wrapped: a private window throws rather than returning null.          */
+  var MAX_SIGS = 4;
+
+  function readSigs() {
+    var out = [];
+    try {
+      var raw = localStorage.getItem(SIG_KEY);
+      if (raw && raw.charAt(0) === "[") {
+        out = JSON.parse(raw) || [];
+      } else if (raw) {
+        out = [{ u: raw, a: 0 }];          // the older single-slot format
+      }
+    } catch (e) { out = []; }
+    return out.filter(function (s) { return s && s.u; });
+  }
+  function writeSigs(list) {
+    try { localStorage.setItem(SIG_KEY, JSON.stringify(list)); } catch (e) { /* private window */ }
+  }
+
+  function measure(dataUrl, cb) {
+    var img = new Image();
+    img.onload = function () { cb(img.height / Math.max(1, img.width)); };
+    img.onerror = function () { cb(0.4); };
+    img.src = dataUrl;
+  }
+
+  // Fills in any aspect we do not know yet (older saves), then paints the strip.
+  function loadSigs(done) {
+    S.sigs = readSigs();
+    var pending = 0, fired = false;
+    function finish() { if (!fired) { fired = true; renderSigs(); if (done) done(); } }
+    S.sigs.forEach(function (s) {
+      if (!s.a) {
+        pending++;
+        measure(s.u, function (a) { s.a = a; if (--pending === 0) finish(); });
+      }
+    });
+    if (pending === 0) finish();
+  }
+
+  function renderSigs() {
+    var strip = document.getElementById("sigstrip");
+    var box = document.getElementById("saved");
+    if (!strip || !box) return;
+    strip.textContent = "";
+    box.hidden = S.sigs.length === 0;
+
+    S.sigs.forEach(function (s, i) {
+      var card = document.createElement("div");
+      card.className = "sigcard";
+
+      var img = document.createElement("img");
+      img.src = s.u;
+      img.alt = "Saved signature " + (i + 1);
+      card.appendChild(img);
+
+      var drop = document.createElement("button");
+      drop.className = "drop";
+      drop.type = "button";
+      drop.textContent = "×";
+      drop.setAttribute("aria-label", "Forget this signature");
+      drop.onclick = function (ev) {
+        ev.stopPropagation();
+        S.sigs.splice(i, 1);
+        writeSigs(S.sigs);
+        renderSigs();
+      };
+      card.appendChild(drop);
+
+      card.onclick = function () {
+        closeSheet();
+        addStamp(s.u, s.a, 0.32);
+      };
+      strip.appendChild(card);
+    });
+  }
+
+  function rememberSig(dataUrl, aspect) {
+    S.sigs = S.sigs.filter(function (s) { return s.u !== dataUrl; });
+    S.sigs.unshift({ u: dataUrl, a: aspect });
+    S.sigs = S.sigs.slice(0, MAX_SIGS);
+    writeSigs(S.sigs);
+    renderSigs();
+  }
+
+  loadSigs();
+
+  /* ── opening a document ─────────────────────────────────────────── */
+  $("#open1").onclick = $("#open2").onclick = function () { el.file.click(); };
+
+  el.file.onchange = function () {
+    var f = el.file.files && el.file.files[0];
+    if (!f) return;
+    var r = new FileReader();
+    r.onload = function () { openBytes(new Uint8Array(r.result), f.name); };
+    r.onerror = function () { toast("That file could not be read.", true); };
+    r.readAsArrayBuffer(f);
+    el.file.value = "";
+  };
+
+  $("#sample").onclick = function () { makeSample().then(function (b) { openBytes(b, "sample-letter.pdf"); }); };
+
+  function openBytes(bytes, name) {
+    if (!window.pdfjsLib) { toast("The PDF engine did not load. Reload the page.", true); return; }
+    S.bytes = bytes.slice(0);
+    S.name = name || "document.pdf";
+    S.stamps = [];
+    S.sel = null;
+    pdfjsLib.getDocument({ data: bytes.slice(0) }).promise.then(function (pdf) {
+      S.pdf = pdf;
+      S.pageNo = 1;
+      el.empty.hidden = true;
+      el.paper.hidden = false;
+      el.pager.hidden = false;
+      el.docname.textContent = S.name;
+      el.sign.disabled = false;
+      el.datebtn.disabled = false;
+      el.save.disabled = false;
+      render();
+    }).catch(function (err) {
+      var pw = err && err.name === "PasswordException";
+      toast(pw ? "That PDF is password protected. Remove the password first."
+               : "That file is not a PDF this can read.", true);
+    });
+  }
+
+  /* ── rendering ──────────────────────────────────────────────────── */
+  function render() {
+    if (!S.pdf) return;
+    if (S.rendering) { S.pending = true; return; }
+    S.rendering = true;
+    S.pdf.getPage(S.pageNo).then(function (page) {
+      var base = page.getViewport({ scale: 1 });
+      var pad = 32;
+      var avail = Math.max(240, Math.min(el.stage.clientWidth - pad, 900));
+      var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+      var cssScale = avail / base.width;
+      var vp = page.getViewport({ scale: cssScale * dpr });
+      el.canvas.width = Math.floor(vp.width);
+      el.canvas.height = Math.floor(vp.height);
+      el.paper.style.width = Math.floor(base.width * cssScale) + "px";
+      var ctx = el.canvas.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, el.canvas.width, el.canvas.height);
+      return page.render({ canvasContext: ctx, viewport: vp }).promise;
+    }).then(function () {
+      el.count.textContent = S.pageNo + " / " + S.pdf.numPages;
+      el.prev.disabled = S.pageNo <= 1;
+      el.next.disabled = S.pageNo >= S.pdf.numPages;
+      drawStamps();
+      S.rendering = false;
+      if (S.pending) { S.pending = false; render(); }
+    }).catch(function () {
+      S.rendering = false;
+      toast("That page could not be drawn.", true);
+    });
+  }
+
+  el.prev.onclick = function () { if (S.pageNo > 1) { S.pageNo--; S.sel = null; render(); } };
+  el.next.onclick = function () { if (S.pdf && S.pageNo < S.pdf.numPages) { S.pageNo++; S.sel = null; render(); } };
+
+  var rt;
+  window.addEventListener("resize", function () {
+    clearTimeout(rt);
+    rt = setTimeout(render, 140);
+  });
+
+  /* ── stamps on the page ─────────────────────────────────────────── */
+  function drawStamps() {
+    el.overlay.textContent = "";
+    var W = el.paper.clientWidth, H = el.paper.clientHeight;
+    S.stamps.filter(function (s) { return s.page === S.pageNo; }).forEach(function (s) {
+      var d = document.createElement("div");
+      d.className = "stamp" + (S.sel === s.id ? " sel" : "");
+      var w = s.fw * W, h = w * s.aspect;
+      d.style.left = (s.fx * W) + "px";
+      d.style.top = (s.fy * H) + "px";
+      d.style.width = w + "px";
+      d.style.height = h + "px";
+
+      var img = document.createElement("img");
+      img.src = s.src;
+      img.alt = "Signature";
+      d.appendChild(img);
+
+      var kill = document.createElement("button");
+      kill.className = "kill";
+      kill.type = "button";
+      kill.textContent = "×";
+      kill.setAttribute("aria-label", "Remove this signature");
+      kill.onclick = function (ev) {
+        ev.stopPropagation();
+        S.stamps = S.stamps.filter(function (x) { return x.id !== s.id; });
+        S.sel = null;
+        drawStamps();
+      };
+      d.appendChild(kill);
+
+      var grip = document.createElement("div");
+      grip.className = "grip";
+      d.appendChild(grip);
+
+      d.dataset.id = String(s.id);
+      d.addEventListener("pointerdown", function (ev) {
+        if (ev.target === grip) return;
+        ev.preventDefault();
+        selectOnly(s.id);
+        drag(ev, d, s, "move");
+      });
+      grip.addEventListener("pointerdown", function (ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        selectOnly(s.id);
+        drag(ev, d, s, "size");
+      });
+
+      el.overlay.appendChild(d);
+    });
+  }
+
+  function selectOnly(id) {
+    S.sel = id;
+    Array.prototype.forEach.call(el.overlay.children, function (n) {
+      n.classList.toggle("sel", n.dataset.id === String(id));
+    });
+  }
+
+  function drag(ev, node, s, mode) {
+    var W = el.paper.clientWidth, H = el.paper.clientHeight;
+    var startX = ev.clientX, startY = ev.clientY;
+    var fx0 = s.fx, fy0 = s.fy, fw0 = s.fw;
+    try { node.setPointerCapture(ev.pointerId); } catch (e) { /* drag anyway */ }
+    node.style.cursor = mode === "move" ? "grabbing" : "nwse-resize";
+
+    function move(e) {
+      var dx = (e.clientX - startX) / W, dy = (e.clientY - startY) / H;
+      if (mode === "move") {
+        var hf = (fw0 * W * s.aspect) / H;
+        s.fx = Math.min(Math.max(fx0 + dx, -0.02), 1 - fw0 + 0.02);
+        s.fy = Math.min(Math.max(fy0 + dy, -0.02), 1 - hf + 0.02);
+      } else {
+        s.fw = Math.min(Math.max(fw0 + dx, 0.06), 0.96);
+      }
+      var w = s.fw * W;
+      node.style.left = (s.fx * W) + "px";
+      node.style.top = (s.fy * H) + "px";
+      node.style.width = w + "px";
+      node.style.height = (w * s.aspect) + "px";
+    }
+    function up() {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      node.style.cursor = "";
+    }
+    // On the window for the same reason the pad is: a refused capture must not
+    // leave a stamp stuck to the cursor.
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+  }
+
+  el.overlay.addEventListener("pointerdown", function (ev) {
+    if (ev.target === el.overlay && S.sel !== null) { selectOnly(null); }
+  });
+
+  // Every stamp carries its own aspect ratio: a signature and a date line are
+  // very different shapes, and one global ratio stretched whichever was placed
+  // second.
+  function addStamp(src, aspect, fw) {
+    // Cascade each new stamp down the page so a second one does not land on
+    // top of the first and look like nothing happened.
+    var onPage = S.stamps.filter(function (s) { return s.page === S.pageNo; }).length;
+    S.stamps.push({
+      id: Date.now() + Math.random(),
+      page: S.pageNo,
+      fx: 0.12 + (onPage % 3) * 0.04,
+      fy: Math.min(0.72 + onPage * 0.07, 0.88),
+      fw: fw, src: src, aspect: aspect
+    });
+    S.sel = S.stamps[S.stamps.length - 1].id;
+    drawStamps();
+    toast("Drag it into place, corner dot to resize");
+  }
+
+
+  /* ── date stamp ─────────────────────────────────────────────────── */
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function todayISO() {
+    var d = new Date();
+    return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+  }
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July",
+                "August", "September", "October", "November", "December"];
+
+  function formatDate(iso, how) {
+    var p = (iso || "").split("-");
+    if (p.length !== 3) return iso || "";
+    var y = p[0], m = parseInt(p[1], 10), d = parseInt(p[2], 10);
+    if (how === "slash") return pad2(d) + "/" + pad2(m) + "/" + y;
+    if (how === "long")  return d + " " + MONTHS[m - 1] + " " + y;
+    return y + "-" + pad2(m) + "-" + pad2(d);
+  }
+
+  // Rendered to a PNG rather than drawn as PDF text, so that what lands in the
+  // file is pixel-for-pixel what was positioned on screen — the same path the
+  // signature already takes, and no second set of placement maths to keep true.
+  function textPng(text) {
+    var S0 = 8;                 // render large, place small
+    var size = 18 * S0;
+    var c = document.createElement("canvas");
+    var ctx = c.getContext("2d");
+    var font = size + 'px "Source Sans 3", system-ui, -apple-system, sans-serif';
+    ctx.font = font;
+    var w = Math.ceil(ctx.measureText(text).width) + size;
+    var h = Math.ceil(size * 1.6);
+    c.width = w; c.height = h;
+    ctx = c.getContext("2d");   // the context resets when the canvas is sized
+    ctx.font = font;
+    ctx.fillStyle = "#101418";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, size / 2, h / 2);
+    return { url: c.toDataURL("image/png"), aspect: h / w };
+  }
+
+  function refreshDatePreview() {
+    el.datepreview.textContent = formatDate(el.dateval.value, el.datefmt.value);
+  }
+
+  function openDateSheet() {
+    if (!el.dateval.value) el.dateval.value = todayISO();
+    refreshDatePreview();
+    el.scrim.hidden = false;
+    el.tsheet.hidden = false;
+  }
+  function closeDateSheet() {
+    el.tsheet.hidden = true;
+    el.scrim.hidden = true;
+  }
+
+  el.datebtn.onclick = openDateSheet;
+  el.dateval.onchange = el.dateval.oninput = refreshDatePreview;
+  el.datefmt.onchange = refreshDatePreview;
+  $("#tcancel").onclick = closeDateSheet;
+  $("#tuse").onclick = function () {
+    var txt = formatDate(el.dateval.value, el.datefmt.value);
+    if (!txt) { toast("Pick a date first.", true); return; }
+    var t = textPng(txt);
+    closeDateSheet();
+    // Narrower than a signature: a date line is text, not a flourish.
+    addStamp(t.url, t.aspect, 0.20);
+  };
+
+  /* ── signature pad ──────────────────────────────────────────────── */
+  var padCtx, drawing = false, last = null, inked = false;
+
+  function openSheet() {
+    el.scrim.hidden = false;
+    el.sheet.hidden = false;
+    renderSigs();
+    el.sighint.textContent = S.sigs.length
+      ? "Pick a saved one, or draw a new one"
+      : "Finger, stylus or mouse";
+    var r = el.pad.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    el.pad.width = Math.floor(r.width * dpr);
+    el.pad.height = Math.floor(r.height * dpr);
+    padCtx = el.pad.getContext("2d");
+    padCtx.scale(dpr, dpr);
+    padCtx.lineWidth = 2.6;
+    padCtx.lineCap = "round";
+    padCtx.lineJoin = "round";
+    padCtx.strokeStyle = "#101418";
+    inked = false;
+  }
+  function closeSheet() {
+    el.sheet.hidden = true;
+    el.scrim.hidden = true;
+  }
+
+  el.sign.onclick = openSheet;
+  el.scrim.onclick = function () { closeSheet(); closeDateSheet(); };
+  $("#padcancel").onclick = closeSheet;
+  $("#padclear").onclick = function () {
+    padCtx.clearRect(0, 0, el.pad.width, el.pad.height);
+    inked = false;
+  };
+
+  function padPoint(e) {
+    var r = el.pad.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+  el.pad.addEventListener("pointerdown", function (e) {
+    e.preventDefault();
+    // Flags first, capture second, and the capture inside a try. Pointer
+    // capture only keeps the stroke alive when the cursor wanders off the pad
+    // — it is a convenience. It can throw NotFoundError for a pointer the
+    // browser no longer considers active, and with the call ahead of the
+    // flags that exception aborted the handler before `drawing` was ever set,
+    // so the whole stroke silently did nothing.
+    drawing = true; inked = true;
+    try { el.pad.setPointerCapture(e.pointerId); } catch (err) { /* draw anyway */ }
+    last = padPoint(e);
+    padCtx.beginPath();
+    padCtx.moveTo(last.x, last.y);
+    padCtx.lineTo(last.x + 0.1, last.y);
+    padCtx.stroke();
+  });
+  // Move and release are watched on the window, not the canvas: that way a
+  // stroke survives the cursor leaving the pad even when capture was refused.
+  window.addEventListener("pointermove", function (e) {
+    if (!drawing) return;
+    e.preventDefault();
+    var p = padPoint(e);
+    var mid = { x: (last.x + p.x) / 2, y: (last.y + p.y) / 2 };
+    padCtx.quadraticCurveTo(last.x, last.y, mid.x, mid.y);
+    padCtx.stroke();
+    padCtx.beginPath();
+    padCtx.moveTo(mid.x, mid.y);
+    last = p;
+  });
+  ["pointerup", "pointercancel"].forEach(function (t) {
+    window.addEventListener(t, function () { drawing = false; });
+  });
+
+  $("#paduse").onclick = function () {
+    if (!inked) {
+      if (S.sigs.length) { closeSheet(); addStamp(S.sigs[0].u, S.sigs[0].a, 0.32); return; }
+      toast("Nothing drawn yet.", true);
+      return;
+    }
+    var url = trim(el.pad);
+    if (!url) { toast("Nothing drawn yet.", true); return; }
+    measure(url, function (aspect) {
+      rememberSig(url, aspect);
+      closeSheet();
+      addStamp(url, aspect, 0.32);
+    });
+  };
+
+  function trim(cv) {
+    var ctx = cv.getContext("2d");
+    var W = cv.width, H = cv.height;
+    var d;
+    try { d = ctx.getImageData(0, 0, W, H).data; } catch (e) { return cv.toDataURL("image/png"); }
+    var x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (var y = 0; y < H; y++) {
+      for (var x = 0; x < W; x++) {
+        if (d[(y * W + x) * 4 + 3] > 8) {
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+    if (x1 < 0) return null;
+    var pad = 8;
+    x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad);
+    x1 = Math.min(W - 1, x1 + pad); y1 = Math.min(H - 1, y1 + pad);
+    var out = document.createElement("canvas");
+    out.width = x1 - x0 + 1;
+    out.height = y1 - y0 + 1;
+    out.getContext("2d").drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+    return out.toDataURL("image/png");
+  }
+
+  /* ── writing the signed file ────────────────────────────────────── */
+  el.save.onclick = function () {
+    if (!S.bytes) return;
+    if (!S.stamps.length) { toast("Place a signature first.", true); return; }
+    el.save.disabled = true;
+    var old = el.save.textContent;
+    el.save.textContent = "Writing…";
+    build().then(function (bytes) {
+      var blob = new Blob([bytes], { type: "application/pdf" });
+      var name = S.name.replace(/\.pdf$/i, "") + "-signed.pdf";
+      if (!downloads) {
+        toast("Saving is not available in this view.", true);
+        return;
+      }
+      return downloads.save({ filename: name, data: blob }).then(function () {
+        toast("Saved " + name);
+      }).catch(function (err) {
+        if (err && err.code === "declined") return;
+        toast("The file could not be saved (" + ((err && err.code) || "error") + ").", true);
+      });
+    }).catch(function (err) {
+      toast("This PDF could not be written to" +
+        (err && /encrypt/i.test(String(err.message)) ? " — it is protected." : "."), true);
+    }).then(function () {
+      el.save.textContent = old;
+      el.save.disabled = false;
+    });
+  };
+
+  function build() {
+    var L = window.PDFLib;
+    return L.PDFDocument.load(S.bytes.slice(0)).then(function (doc) {
+      // One embed per distinct image, however many times it is placed.
+      var uniq = [];
+      S.stamps.forEach(function (s) { if (uniq.indexOf(s.src) < 0) uniq.push(s.src); });
+      var embedded = uniq.reduce(function (chain, src) {
+        return chain.then(function (map) {
+          return doc.embedPng(src).then(function (img) { map[src] = img; return map; });
+        });
+      }, Promise.resolve({}));
+
+      return embedded.then(function (map) {
+        S.stamps.forEach(function (s) {
+          var page = doc.getPage(s.page - 1);
+          var size = page.getSize();
+          var w = size.width, h = size.height;
+          var rot = ((page.getRotation().angle % 360) + 360) % 360;
+          var swap = (rot === 90 || rot === 270);
+          var DW = swap ? h : w, DH = swap ? w : h;
+
+          var dx = s.fx * DW, dy = s.fy * DH;
+          var dw = s.fw * DW, dh = dw * s.aspect;
+
+          var box;
+          if (rot === 90)       box = { x: dy + dh,        y: dx,          rotate: 90 };
+          else if (rot === 180) box = { x: w - dx,         y: dy + dh,     rotate: 180 };
+          else if (rot === 270) box = { x: w - dy - dh,    y: h - dx,      rotate: 270 };
+          else                  box = { x: dx,             y: h - dy - dh, rotate: 0 };
+
+          page.drawImage(map[s.src], {
+            x: box.x, y: box.y,
+            width: dw, height: dh,
+            rotate: L.degrees(box.rotate)
+          });
+        });
+        return doc.save();
+      });
+    });
+  }
+
+  /* ── a sample page to try it on ─────────────────────────────────── */
+  function makeSample() {
+    var L = window.PDFLib;
+    return L.PDFDocument.create().then(function (doc) {
+      return Promise.all([
+        doc.embedFont(L.StandardFonts.Helvetica),
+        doc.embedFont(L.StandardFonts.HelveticaBold)
+      ]).then(function (fonts) {
+        var f = fonts[0], fb = fonts[1];
+        var page = doc.addPage([595.28, 841.89]);
+        var grey = L.rgb(0.42, 0.45, 0.49);
+        var ink = L.rgb(0.09, 0.11, 0.13);
+        var M = 64, y = 760;
+
+        page.drawText("SAMPLE DOCUMENT", { x: M, y: y, size: 9, font: fb, color: grey });
+        y -= 40;
+        page.drawText("Letter of appointment", { x: M, y: y, size: 20, font: fb, color: ink });
+        y -= 34;
+        [
+          "This page exists so you can try Wet Ink on something before you open a",
+          "document that matters. Nothing here is real and nothing here is filed.",
+          "",
+          "Draw your signature, drop it on the line below, resize it with the corner",
+          "dot, then save the file back out and open it in any PDF reader to check",
+          "that the ink landed where you put it.",
+          "",
+          "The page is A4, 595 x 842 points, the same geometry as the forms you will",
+          "actually be signing."
+        ].forEach(function (line) {
+          if (line) page.drawText(line, { x: M, y: y, size: 11, font: f, color: ink });
+          y -= 17;
+        });
+
+        y -= 46;
+        page.drawLine({
+          start: { x: M, y: y }, end: { x: M + 230, y: y },
+          thickness: 0.8, color: grey
+        });
+        page.drawText("Signature", { x: M, y: y - 14, size: 8.5, font: f, color: grey });
+        page.drawLine({
+          start: { x: M + 270, y: y }, end: { x: M + 430, y: y },
+          thickness: 0.8, color: grey
+        });
+        page.drawText("Date", { x: M + 270, y: y - 14, size: 8.5, font: f, color: grey });
+
+        return doc.save();
+      });
+    });
+  }
+})();
+</script>
