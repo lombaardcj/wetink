@@ -71,6 +71,11 @@ afternoon:
 
 ## Licence
 
-[CC BY-NC 4.0](LICENSE) — fork it, build on it, credit Chris Lombaard, don't
-sell it. The vendored libraries in `site/vendor/` carry their own licences;
-see [THIRD-PARTY.md](THIRD-PARTY.md).
+© 2026 Chris Lombaard · [CC BY-NC 4.0](LICENSE)
+
+Fork it, build on it, run it for yourself, your family or your church — credit
+Chris Lombaard. Using any part of it in a commercial work needs his permission
+first: <lombaardcj@gmail.com>.
+
+The vendored libraries in `site/vendor/` are not covered by that and carry
+their own licences — see [THIRD-PARTY.md](THIRD-PARTY.md).
