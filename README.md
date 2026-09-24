@@ -68,3 +68,9 @@ afternoon:
 - Signatures are kept in `localStorage`, up to four, per browser and per
   device. They never leave the machine, so the desktop and the phone each keep
   their own.
+
+## Licence
+
+[CC BY-NC 4.0](LICENSE) — fork it, build on it, credit Chris Lombaard, don't
+sell it. The vendored libraries in `site/vendor/` carry their own licences;
+see [THIRD-PARTY.md](THIRD-PARTY.md).
