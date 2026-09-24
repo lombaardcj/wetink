@@ -75,7 +75,7 @@ afternoon:
 
 Fork it, build on it, run it for yourself, your family or your church — credit
 Chris Lombaard. Using any part of it in a commercial work needs his permission
-first: <lombaardcj@gmail.com>.
+first: open an issue on this repository and ask.
 
 The vendored libraries in `site/vendor/` are not covered by that and carry
 their own licences — see [THIRD-PARTY.md](THIRD-PARTY.md).
