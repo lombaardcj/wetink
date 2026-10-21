@@ -633,6 +633,24 @@
 
   $("#sample").onclick = function () { makeSample().then(function (b) { openBytes(b, "sample-letter.pdf"); }); };
 
+  // ?doc=<name> opens docs/<name>.pdf from this server, so a form can be put
+  // in that folder and sent as a link that opens ready to sign.
+  var preload = new URLSearchParams(location.search).get("doc");
+  if (preload) {
+    if (!/^[\w.-]+$/.test(preload)) {
+      toast("That link does not name a document.", true);
+    } else {
+      fetch("docs/" + preload + ".pdf", { cache: "no-store" }).then(function (r) {
+        if (!r.ok) throw new Error(r.status);
+        return r.arrayBuffer();
+      }).then(function (b) {
+        openBytes(new Uint8Array(b), preload + ".pdf");
+      }).catch(function () {
+        toast("The document for this link is not on the server.", true);
+      });
+    }
+  }
+
   function openBytes(bytes, name) {
     if (!window.pdfjsLib) { toast("The PDF engine did not load. Reload the page.", true); return; }
     S.bytes = bytes.slice(0);
